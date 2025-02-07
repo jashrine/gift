@@ -7,7 +7,7 @@ $(document).ready(function () {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             microphone = audioContext.createMediaStreamSource(stream);
             analyser = audioContext.createAnalyser();
-            analyser.fftSize = 512; // Higher resolution
+            analyser.fftSize = 512; // Higher resolution for better waveform detection
             dataArray = new Uint8Array(analyser.fftSize);
             microphone.connect(analyser);
             detectBlow();
@@ -22,12 +22,14 @@ $(document).ready(function () {
 
         let sum = 0;
         for (let i = 0; i < dataArray.length; i++) {
-            sum += Math.abs(dataArray[i] - 128); // Calculate sound wave variation
+            sum += Math.abs(dataArray[i] - 128); // Get waveform variation
         }
         let average = sum / dataArray.length;
 
+        console.log("Blow level:", average); // Debugging, check the console
+
         // Adjust threshold based on testing
-        if (average > 20 && !isBlown) {  // Lowered threshold for better detection
+        if (average > 15 && !isBlown) {  // Lower threshold for better detection
             extinguishCandle();
             isBlown = true; // Prevent multiple detections
         }
@@ -43,10 +45,15 @@ $(document).ready(function () {
         $("#candle").animate({ opacity: "0.5" }, 100);
     }
 
-    // Start listening only when the user interacts (required for some browsers)
+    // Start listening only when the user interacts (click or key press)
     $(document).on("click keydown", function () {
         if (!audioContext) {
             startAudioDetection();
         }
+    });
+
+    // Debugging: Log if mic access fails
+    navigator.mediaDevices.getUserMedia({ audio: true }).catch(err => {
+        console.error("Microphone access blocked:", err);
     });
 });
