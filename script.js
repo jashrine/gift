@@ -7,31 +7,32 @@ $(document).ready(function () {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             microphone = audioContext.createMediaStreamSource(stream);
             analyser = audioContext.createAnalyser();
-            analyser.fftSize = 512; // Higher resolution for better waveform detection
-            dataArray = new Uint8Array(analyser.fftSize);
+            analyser.fftSize = 256; // Defines resolution
+            const bufferLength = analyser.frequencyBinCount;
+            dataArray = new Uint8Array(bufferLength);
             microphone.connect(analyser);
-            detectBlow();
+            detectSound();
         } catch (err) {
             console.error("Microphone access denied:", err);
         }
     }
 
-    function detectBlow() {
-        requestAnimationFrame(detectBlow);
-        analyser.getByteTimeDomainData(dataArray);
+    function detectSound() {
+        requestAnimationFrame(detectSound);
+        analyser.getByteFrequencyData(dataArray);
 
         let sum = 0;
         for (let i = 0; i < dataArray.length; i++) {
-            sum += Math.abs(dataArray[i] - 128); // Get waveform variation
+            sum += dataArray[i];
         }
         let average = sum / dataArray.length;
 
-        console.log("Blow level:", average); // Debugging, check the console
+        console.log("Sound Level:", average); // Debugging: Open Console (F12)
 
-        // Adjust threshold based on testing
-        if (average > 15 && !isBlown) {  // Lower threshold for better detection
+        // Adjust threshold based on testing (higher = louder required)
+        if (average > 30 && !isBlown) {  // Lower threshold = more sensitive
             extinguishCandle();
-            isBlown = true; // Prevent multiple detections
+            isBlown = true; // Prevent multiple triggers
         }
     }
 
@@ -40,12 +41,12 @@ $(document).ready(function () {
         $(".smoke").each(function () {
             $(this).addClass("puff-bubble");
         });
-        $("#glow").hide(); // Hide instead of remove
+        $("#glow").hide();
         $("h1").hide().html("Happy 12th Birthday, Madeline!").delay(750).fadeIn(300);
         $("#candle").animate({ opacity: "0.5" }, 100);
     }
 
-    // Start listening only when the user interacts (click or key press)
+    // Ensure mic access starts only after user clicks or presses a key
     $(document).on("click keydown", function () {
         if (!audioContext) {
             startAudioDetection();
